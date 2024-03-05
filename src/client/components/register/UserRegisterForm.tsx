@@ -1,79 +1,38 @@
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useRepository } from "@/hooks/CustomHook";
-import { userFormType } from "@/types/data";
+import { formValueData, userFormType } from "@/types/data";
+import formData from "@/utils/RegisterInputFormData.json";
+import _ from "lodash";
 
-type formValueData = {
-  labelText?: string;
-  id: "firstName" | "lastName" | "address" | "password" | "userImage";
-  value?: string | undefined;
-  type: string;
-  required: boolean;
-};
-const formValue: formValueData[] = [
-  {
-    labelText: "First Name",
-    id: "firstName",
-    type: "text",
-    required: true,
-  },
-  {
-    labelText: "Last Name",
-    id: "lastName",
-    type: "text",
-    required: true,
-  },
-  {
-    labelText: "Password",
-    id: "password",
-    type: "text",
-    required: true,
-  },
-  {
-    labelText: "Address",
-    id: "address",
-    type: "text",
-    required: true,
-  },
-  {
-    labelText: "User Image",
-    id: "userImage",
-    type: "file",
-    required: true,
-  },
-];
-type userDetailsFormProps = {
-  phoneNumber: string;
-  // token: string | undefined;
-  userRole: string;
-};
-
-export default function UserRegisterform({
-  phoneNumber,
-  // token,
-  userRole,
-}: userDetailsFormProps) {
+export default function UserRegisterform() {
   const { register, handleSubmit } = useForm<userFormType>();
   const navigate = useNavigate();
-
   const { repo } = useRepository();
+  const location = useLocation();
+  const phoneNumber = location.state?.phone;
+  const token = location.state?.token;
   async function handleUserDataSubmit(data: userFormType) {
     console.log("data", data);
     const formData = new FormData();
-    formData.append("userImage", data.userImage[0]);
-    formData.append("firstName", data.firstName);
-    formData.append("lastName", data.lastName);
-    formData.append("address", data.address);
+    const fields = ["firstName", "lastName", "password", "userImage"];
+    fields.forEach((field) => {
+      if (data[field]) {
+        if (_.isArray(data[field])) {
+          const fileList: FileList = data[field] as FileList;
+          if (fileList.length > 0) {
+            const file: File = fileList[0];
+            formData.append(`${field}File`, file);
+            formData.append(`${field}`, file.name);
+          }
+        } else {
+          formData.append(`${field}`, data[field] as string);
+        }
+      }
+    });
     formData.append("phoneNumber", phoneNumber);
-    formData.append("userImageName", data.userImage[0].name);
-    formData.append("password", data.password);
-    formData.append("userRole", userRole);
-
-    for (const [key, value] of formData) {
-      console.log(`${key}: ${value}\n`);
-    }
-    // console.log("formData:", JSON.stringify(formData));
+    formData.append("firebaseToken", token);
     try {
       const response = await repo.registerUser(formData);
       console.log(response);
@@ -97,15 +56,12 @@ export default function UserRegisterform({
               <div className="font-semibold text-3xl">
                 <p>Add your credentials</p>
               </div>
-              <div className="flex flex-row text-base font-medium text-gray-400">
-                <p>as a {userRole}</p>
-              </div>
             </div>
 
             <div>
               <div className="flex flex-col">
                 <form onSubmit={handleSubmit(handleUserDataSubmit)}>
-                  {formValue.map((value) => (
+                  {_.map(formData.userFormData, (value: formValueData) => (
                     <div>
                       <label
                         htmlFor={value.id}
