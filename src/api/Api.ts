@@ -42,12 +42,7 @@ export class API implements IJsonApi {
       const accessToken = await this._localStorageClient.getAccessToken();
       _headers.append("Authorization", `Bearer ${accessToken}`);
     }
-    // if(body){
-    //   console.log("at api body data: ");
-    //   for (const [key, value] of body) {
-    //     console.log(`${key}: ${value}\n`);
-    //   }
-    // }
+    
     const requestOptions: RequestInit = {
       method: method,
       headers: _headers,
